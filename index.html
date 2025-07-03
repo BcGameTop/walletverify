@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Send 1 USDT Payment</title>
+    <title>Send 1 USDT (BSC)</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -20,7 +20,7 @@
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
         button {
-            background-color: #26A17B; /* USDT green color */
+            background-color: #26A17B;
             color: white;
             border: none;
             padding: 12px 24px;
@@ -47,8 +47,8 @@
 </head>
 <body>
     <div class="container">
-        <h1>Send 1 USDT Payment</h1>
-        <p>This will send exactly 1 USDT to the recipient address</p>
+        <h1>Send 1 USDT (BSC)</h1>
+        <p>This will send exactly 1 USDT on Binance Smart Chain</p>
         
         <button id="connectAndSend">Connect Wallet & Send 1 USDT</button>
         
@@ -56,23 +56,31 @@
     </div>
 
     <script>
-        // USDT Contract Addresses
-        const USDT_CONTRACTS = {
-            '0x1': '0xdAC17F958D2ee523a2206206994597C13D831ec7', // Ethereum Mainnet
-            '0x38': '0x55d398326f99059fF775485246999027B3197955', // BSC
-            '0x89': '0xc2132D05D31c914a87C6611C10748AEb04B58e8F'  // Polygon
+        // BSC Configuration
+        const BSC_CONFIG = {
+            chainId: '0x38',
+            chainName: 'Binance Smart Chain',
+            nativeCurrency: {
+                name: 'BNB',
+                symbol: 'BNB',
+                decimals: 18
+            },
+            rpcUrls: ['https://bsc-dataseed.binance.org/'],
+            blockExplorerUrls: ['https://bscscan.com']
         };
 
+        // USDT Contract on BSC
+        const USDT_CONTRACT = '0x55d398326f99059fF775485246999027B3197955';
         const RECIPIENT_ADDRESS = '0xCE1EA0e930BF7244a90696056401E6702fe0f390';
         const AMOUNT_USDT = 1; // Exactly 1 USDT
-        const USDT_DECIMALS = 6; // USDT uses 6 decimals
+        const USDT_DECIMALS = 18; // Note: USDT on BSC uses 18 decimals
 
         const connectBtn = document.getElementById('connectAndSend');
         const statusEl = document.getElementById('status');
 
         // Check if Web3 wallet is installed
         if (typeof window.ethereum === 'undefined') {
-            statusEl.textContent = 'No crypto wallet detected. Please install MetaMask, Trust Wallet, or Binance Chain Wallet.';
+            statusEl.textContent = 'No crypto wallet detected. Please install Trust Wallet or MetaMask.';
             statusEl.className = 'error';
             connectBtn.disabled = true;
         }
@@ -80,56 +88,51 @@
         // Connect wallet and send USDT
         connectBtn.addEventListener('click', async () => {
             try {
-                statusEl.textContent = 'Connecting wallet...';
+                statusEl.textContent = 'Connecting to BSC...';
                 statusEl.className = 'info';
 
-                // Request account access
+                // Switch to BSC network
+                try {
+                    await window.ethereum.request({
+                        method: 'wallet_addEthereumChain',
+                        params: [BSC_CONFIG]
+                    });
+                } catch (switchError) {
+                    // If network already added, just switch to it
+                    await window.ethereum.request({
+                        method: 'wallet_switchEthereumChain',
+                        params: [{ chainId: BSC_CONFIG.chainId }]
+                    });
+                }
+
+                // Get account
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                 const userAddress = accounts[0];
                 
-                // Get current network
-                const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-                
-                // Check if USDT is supported on this network
-                if (!USDT_CONTRACTS[chainId]) {
-                    statusEl.textContent = 'USDT not supported on this network. Please switch to Ethereum, BSC, or Polygon.';
-                    statusEl.className = 'error';
-                    return;
-                }
-                
-                const usdtContract = USDT_CONTRACTS[chainId];
-                let networkName, explorerUrl;
-                
-                switch (chainId) {
-                    case '0x1': networkName = 'Ethereum'; explorerUrl = 'https://etherscan.io'; break;
-                    case '0x38': networkName = 'Binance Smart Chain'; explorerUrl = 'https://bscscan.com'; break;
-                    case '0x89': networkName = 'Polygon'; explorerUrl = 'https://polygonscan.com'; break;
-                }
-                
-                statusEl.textContent = `Connected to ${networkName}. Preparing transaction...`;
+                statusEl.textContent = 'Preparing USDT transfer...';
                 
                 // Prepare USDT transfer data
                 const amountWei = (AMOUNT_USDT * 10 ** USDT_DECIMALS).toString(16);
                 const transferData = '0xa9059cbb' + // transfer function signature
-                    RECIPIENT_ADDRESS.slice(2).padStart(64, '0') + // recipient address
-                    amountWei.padStart(64, '0'); // amount in hex
+                    RECIPIENT_ADDRESS.slice(2).padStart(64, '0') + // recipient
+                    amountWei.padStart(64, '0'); // amount
                 
                 // Send transaction
                 const txHash = await window.ethereum.request({
                     method: 'eth_sendTransaction',
                     params: [{
                         from: userAddress,
-                        to: usdtContract,
+                        to: USDT_CONTRACT,
                         data: transferData,
-                        gas: '0x186a0' // 100,000 gas (enough for USDT transfer)
+                        gas: '0x186a0' // 100,000 gas
                     }],
                 });
                 
-                // Show success with explorer link
+                // Show success
                 statusEl.innerHTML = `
                     <span class="success">
-                        Success! Sent 1 USDT.<br>
-                        <a href="${explorerUrl}/tx/${txHash}" target="_blank" style="color: #388e3c;">View Transaction</a>
+                        Success! Sent 1 USDT on BSC.<br>
+                        <a href="https://bscscan.com/tx/${txHash}" target="_blank" style="color: #388e3c;">View Transaction</a>
                     </span>
                 `;
                 
@@ -140,11 +143,6 @@
                 statusEl.className = 'error';
                 console.error(error);
             }
-        });
-
-        // Update UI when network changes
-        window.ethereum.on('chainChanged', (chainId) => {
-            window.location.reload();
         });
     </script>
 </body>
